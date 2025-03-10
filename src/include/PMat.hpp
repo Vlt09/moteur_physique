@@ -59,6 +59,16 @@ public:
         _frc = GFLvector{0.f, 0.f};
     }
 
+    PMat(GFLvector position)
+    {
+        _m = 1;
+        _model = PMat::Model::FIXE;
+        _pos = position;
+        _vit = GFLvector{0.f, 0.f};
+        _frc = GFLvector{0.f, 0.f};
+    }
+
+
     PMat(float m, GFLpoint P0, GFLvector V0, Model model);
 
     PMat(const PMat &pmat) : _m(pmat._m), _update(pmat._update), _model(pmat._model)
@@ -91,6 +101,15 @@ public:
     {
         return _pos;
     }
+
+    void updateX(float step){
+        _pos.x += step;
+    }
+
+    void updateY(float step){
+        _pos.y += step;
+    }
+
 
     GFLvector vitesse() const
     {

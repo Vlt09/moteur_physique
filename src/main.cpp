@@ -20,7 +20,7 @@
 #define WWIDTH 720
 #define WHEIGHT 540
 
-static unsigned int nbParticle = 2;
+static unsigned int nbParticle = 10;
 static double partRadius = 0.1;
 
 /* variables de contrôle */
@@ -32,6 +32,30 @@ static float h; // 1./Fe
 static GFLvector g = (GFLvector){0.0f, 0.0f};
 static std::vector<std::shared_ptr<PMat>> pmats;
 static std::vector<Link> links;
+
+
+void moveParticle(void){
+  GFLvector t = (GFLvector){-9.5f, 0.0f};
+  pmats[0]->addForce(t);
+}
+
+void initFlag(float k){
+  for (int i = 0; i < 10; i++){
+    for (int j = 0; j < 10; j++){
+      if (j == 0){
+        auto pmat = std::make_shared<PMat>(PMat(1., (GFLpoint){-5., 5. - (i * 0.5)}, (GFLvector){0.f, 0.f}, PMat::Model::LEAP_FROG));
+        pmats.emplace_back(pmat);
+        links.emplace_back(Link::Extern_Force(*pmat, &g));
+      }
+      else{
+        auto pmat = std::make_shared<PMat>(PMat((GFLpoint){-4.5 + (j * 0.5), 5. - (i * 0.5)}));
+        pmats.emplace_back(pmat);
+        links.emplace_back(Link::Hook_Spring(*pmats[j - 1], *pmats[j], k, 0));        
+      }
+    }
+  }
+}
+
 
 /* -----------------------------------------------------------------------
  * ici, en général pas mal de variables GLOBALES
@@ -49,25 +73,34 @@ static void init(void)
   h = 1. / (float)Fe;
 
   float k = 0.000001 * SQR(Fe); // on suppose que m = 1
-  float z = 0.0005 * (float)Fe;
+  float z = 0.00005 * (float)Fe;
 
   int step = 2;
 
-  for (int i = 0; i < nbParticle; i++)
-  {
-    auto pmat = std::make_shared<PMat>(PMat(1.f, (GFLpoint){nbParticle + (i * step), 0.}, (GFLvector){0.f, 0.f}, PMat::Model::LEAP_FROG));
-    pmats.emplace_back(pmat);
+  // for (int i = 0; i < nbParticle; i++)
+  // {
+  //   if (i == 0 || i == nbParticle - 1){
+  //     auto pmat = std::make_shared<PMat>(PMat((GFLpoint){-2.5 + (i * 1.5), 0.}));
+  //     pmats.emplace_back(pmat);
+  //     links.emplace_back(Link::Extern_Force(*pmat, &g));
+  //   }
+  //   else{
+  //     auto pmat = std::make_shared<PMat>(PMat(1.f, (GFLpoint){-2.5 + (i * 1.5), 0.}, (GFLvector){0.f, 0.f}, PMat::Model::LEAP_FROG));
+  //     pmats.emplace_back(pmat);
+  //     links.emplace_back(Link::Extern_Force(*pmat, &g));
 
-    if (i == 0)
-    {
-      links.emplace_back(Link::Extern_Force(*pmat, &g));
-    }
-  }
+  //   }
 
-  for (int i = 0; i < nbParticle - 1; i++)
-  {
-    links.emplace_back(Link::Hook_Spring(*pmats[i], *pmats[i + 1], k, 0));
-  }
+  // }
+
+  // for (int i = 0; i < nbParticle - 1; i++)
+  // {
+  //   links.emplace_back(Link::Hook_Spring(*pmats[i], *pmats[i + 1], k, 0));
+  // }
+
+  initFlag(k);
+
+  gfl_SetKeyAction('a', moveParticle, nullptr);
 }
 
 /* la fonction de contrôle : appelée 1 seule fois, juste APRES <init> */
@@ -77,8 +110,9 @@ static void ctrl(void)
   gfl_CreateScrollv_i("tempo", &tempo, 0, 300, "temporisation (micro-sec.)");
   gfl_CreateScrollv_i("Fa", &Fa, 1, 20, "Fa");
 
-  gfl_CreateScrollh_d("Gravity x", &(g.x), 0, 10, "contrainte ext en x");
-  gfl_CreateScrollh_d("Gravity y", &(g.y), 0, 1, "contrainte ext en y");
+  gfl_CreateScrollh_d("Gravity x", &(g.x), 0, 9, "contrainte ext en x");
+  gfl_CreateScrollh_d("Gravity y", &(g.y), 0, 9, "contrainte ext en y");
+
 }
 
 /* la fonction de contrôle : appelée 1 seule fois, juste APRES <init> */
@@ -96,7 +130,7 @@ static void evts(void)
 static void draw(void)
 {
 
-  for (int i = 0; i < nbParticle; i++)
+  for (int i = 0; i < pmats.size(); i++)
   {
     gfl_DrawFillCircle(pmats[i]->position(), partRadius, GFLo);
   }

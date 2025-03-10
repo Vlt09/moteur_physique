@@ -82,8 +82,7 @@ public:
         u.x /= d;
         u.y /= d;
 
-        // std::cout << "k = " << _k << std::endl;
-        GFLvector f = (GFLvector)gfl_mapscal2(u, -_k * (d - _l0));
+        GFLvector f = (GFLvector)gfl_mapscal2(u, _k * (d - _l0));
 
         std::cout << "u.x = " << u.x << std::endl;
         std::cout << "Distance d: " << d << " | Longueur au repos l0: " << _l0 << std::endl;
@@ -117,13 +116,13 @@ public:
         u.x /= d;
         u.y /= d;
 
-        GFLvector hook = (GFLvector)gfl_mapscal2(u, -_k * (d - _l0));
+        GFLvector hook = (GFLvector)gfl_mapscal2(u, _k * (d - _l0));
         GFLvector damper = (GFLvector)gfl_mapscal2(deltaV, -_z);
 
         GFLvector f = GFLvector{hook.x - damper.x, hook.y - damper.y};
 
         _pmat1.addForce(f);
-        _pmat2.subForce(f);
+        _pmat2.addForce((GFLvector){-f.x, -f.y});
     }
 
     void update_Cond_Damper_Hook()
@@ -134,23 +133,20 @@ public:
         auto d = GFLdist(p1, p2);
         auto deltaV = gfl_SubVect(v2, v1);
 
-        if (d <= 1e-7f || d >= _maxLength)
-        {
-            return;
-        }
+        // if (d <= 1e-7f || d >= _maxLength)
+        // {
+        //     return;
+        // }
 
         GFLvector u = gfl_NormalVector(gfl_Vector2p(p1, p2)); // direction
 
-        GFLvector hook = (GFLvector)gfl_mapscal2(u, -_k * (d - _l0));
+        GFLvector hook = (GFLvector)gfl_mapscal2(u, _k * (d - _l0));
         GFLvector damper = (GFLvector)gfl_mapscal2(deltaV, _z);
 
         GFLvector f = gfl_SubVect(hook, damper);
 
-        std::cout << "u.x = " << u.x << " u.y = " << u.y << std::endl;
-        std::cout << "f.x = " << f.x << " p2.pos.x = " << p2.x << " hook.x = " << hook.x << std::endl;
-
         _pmat1.addForce(f);
-        _pmat2.subForce(f);
+        _pmat2.addForce((GFLvector){-f.x, -f.y});
     }
 
     void update()
@@ -158,11 +154,11 @@ public:
         switch (_type)
         {
         case HOOK:
-            updateHook();
+            update_Cond_Damper_Hook();
             break;
 
         default:
-            _pmat1.addForce(*_g);
+            _pmat1.addForce(GFLvector{_g->x, _g->y * -1});
             break;
         }
     }
