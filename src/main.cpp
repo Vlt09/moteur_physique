@@ -19,6 +19,7 @@
 /* tailles initiales de la fenêtre graphique (en pixels) */
 #define WWIDTH 720
 #define WHEIGHT 540
+#define FLAG3D true
 
 static unsigned int nbParticle = 10;
 static double partRadius = 0.1;
@@ -33,29 +34,35 @@ static GFLvector g = (GFLvector){0.0f, 0.0f};
 static std::vector<std::shared_ptr<PMat>> pmats;
 static std::vector<Link> links;
 
-
-void moveParticle(void){
+void moveParticle(void)
+{
   GFLvector t = (GFLvector){-9.5f, 0.0f};
   pmats[0]->addForce(t);
 }
 
-void initFlag(float k){
-  for (int i = 0; i < 10; i++){
-    for (int j = 0; j < 10; j++){
-      if (j == 0){
-        auto pmat = std::make_shared<PMat>(PMat(1., (GFLpoint){-5., 5. - (i * 0.5)}, (GFLvector){0.f, 0.f}, PMat::Model::LEAP_FROG));
+void initFlag(float k, float z)
+{
+  for (int i = 0; i < 10; i++)
+  {
+    for (int j = 0; j < 10; j++)
+    {
+      if (j == 0)
+      {
+        auto pmat = std::make_shared<PMat>(PMat((GFLpoint){-5., 5. - (i * 0.5)}, FLAG3D));
         pmats.emplace_back(pmat);
-        links.emplace_back(Link::Extern_Force(*pmat, &g));
+        links.emplace_back(Link::Extern_Force(*pmat, &g, FLAG3D));
       }
-      else{
-        auto pmat = std::make_shared<PMat>(PMat((GFLpoint){-4.5 + (j * 0.5), 5. - (i * 0.5)}));
+      else
+      {
+        auto pmat = std::make_shared<PMat>(PMat(1., (GFLpoint){-4.5 + (j * 0.5), 5. - (i * 0.5)}, (GFLvector){0.f, 0.f}, PMat::Model::LEAP_FROG, FLAG3D));
         pmats.emplace_back(pmat);
-        links.emplace_back(Link::Hook_Spring(*pmats[j - 1], *pmats[j], k, 0));        
+        links.emplace_back(Link::Hook_Spring(*pmats[(i * 10) + (j - 1)], *pmats[(i * 10) + j], k, z));
+        links.emplace_back(Link::Extern_Force(*pmat, &g, FLAG3D));
       }
     }
   }
+  std::cout << "links.size = " << links.size() << std::endl;
 }
-
 
 /* -----------------------------------------------------------------------
  * ici, en général pas mal de variables GLOBALES
@@ -98,7 +105,7 @@ static void init(void)
   //   links.emplace_back(Link::Hook_Spring(*pmats[i], *pmats[i + 1], k, 0));
   // }
 
-  initFlag(k);
+  initFlag(k, z);
 
   gfl_SetKeyAction('a', moveParticle, nullptr);
 }
@@ -112,7 +119,6 @@ static void ctrl(void)
 
   gfl_CreateScrollh_d("Gravity x", &(g.x), 0, 9, "contrainte ext en x");
   gfl_CreateScrollh_d("Gravity y", &(g.y), 0, 9, "contrainte ext en y");
-
 }
 
 /* la fonction de contrôle : appelée 1 seule fois, juste APRES <init> */

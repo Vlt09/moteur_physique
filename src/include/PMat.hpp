@@ -15,6 +15,8 @@ public:
     };
 
 private:
+    bool _flag3d = false;
+
     float _m; // masse
     GFLpoint _pos;
     GFLvector _vit;
@@ -26,11 +28,15 @@ private:
     {
         _vit.x += h * _frc.x / _m;
         _vit.y += h * _frc.y / _m;
+        if (_flag3d)
+            _vit.z += h * _frc.z / _m;
 
         _pos.x += h * _vit.x;
         _pos.y += h * _vit.y;
+        if (_flag3d)
+            _pos.z += h * _vit.z;
 
-        _frc = (GFLvector){0., 0.};
+        _frc = _flag3d ? (GFLvector){0., 0., 0.} : (GFLvector){0., 0.};
     }
 
     void update_euler(float h)
@@ -46,7 +52,7 @@ private:
 
     void update_fixe()
     {
-        _frc = (GFLvector){0., 0.}; // Vide le buffer de force
+        _frc = _flag3d ? (GFLvector){0., 0., 0.} : (GFLvector){0., 0.}; // vide le buffer de force
     }
 
 public:
@@ -59,6 +65,15 @@ public:
         _frc = GFLvector{0.f, 0.f};
     }
 
+    PMat(bool flag3d) : _flag3d(flag3d)
+    {
+        _m = 1;
+        _model = PMat::Model::FIXE;
+        _pos = flag3d ? GFLvector{0.f, 0.f, 0.f} : GFLvector{0.f, 0.f};
+        _vit = flag3d ? GFLvector{0.f, 0.f, 0.f} : GFLvector{0.f, 0.f};
+        _frc = flag3d ? GFLvector{0.f, 0.f, 0.f} : GFLvector{0.f, 0.f};
+    }
+
     PMat(GFLvector position)
     {
         _m = 1;
@@ -68,8 +83,16 @@ public:
         _frc = GFLvector{0.f, 0.f};
     }
 
+    PMat(GFLvector position, bool flag3d) : _flag3d(flag3d)
+    {
+        _m = 1;
+        _model = PMat::Model::FIXE;
+        _pos = position;
+        _vit = GFLvector{0.f, 0.f, 0.f};
+        _frc = GFLvector{0.f, 0.f, 0.f};
+    }
 
-    PMat(float m, GFLpoint P0, GFLvector V0, Model model);
+    PMat(float m, GFLpoint P0, GFLvector V0, Model model, bool flag3d);
 
     PMat(const PMat &pmat) : _m(pmat._m), _update(pmat._update), _model(pmat._model)
     {
@@ -102,14 +125,15 @@ public:
         return _pos;
     }
 
-    void updateX(float step){
+    void updateX(float step)
+    {
         _pos.x += step;
     }
 
-    void updateY(float step){
+    void updateY(float step)
+    {
         _pos.y += step;
     }
-
 
     GFLvector vitesse() const
     {

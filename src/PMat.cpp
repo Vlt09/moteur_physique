@@ -1,9 +1,10 @@
 #include "include/PMat.hpp"
 
-PMat::PMat(float m, GFLpoint P0, GFLvector V0, PMat::Model model) : _m(m),
-                                                                    _pos(P0),
-                                                                    _vit(V0),
-                                                                    _model(model)
+PMat::PMat(float m, GFLpoint P0, GFLvector V0, PMat::Model model, bool flag3d) : _m(m),
+                                                                                 _pos(P0),
+                                                                                 _vit(V0),
+                                                                                 _model(model),
+                                                                                 _flag3d(flag3d)
 {
     switch (model)
     {
