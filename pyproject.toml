@@ -1,0 +1,31 @@
+[project]
+name = "gltf-viewer-tutorial"
+version = "0.1.0"
+description = "SDK repository for the GLTF viewer tutorial"
+authors = [{ name = "Celeborn2BeAlive", email = "laurent.noel.c2ba@gmail.com" }]
+dependencies = [
+    "httpx>=0.28.1",
+]
+readme = "README.md"
+requires-python = ">= 3.12"
+
+[project.urls]
+tutorial = "https://gltf-viewer-tutorial.gitlab.io/"
+repository = "https://gitlab.com/gltf-viewer-tutorial/gltf-viewer"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+universal = true
+dev-dependencies = [
+    "pytest>=8.3.4",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gltf_viewer"]

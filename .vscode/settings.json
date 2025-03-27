@@ -1,0 +1,35 @@
+{
+  "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+  "editor.formatOnSave": true,
+  "files.eol": "\n",
+  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports.ruff": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "python.analysis.autoImportCompletions": true,
+  "python.testing.pytestArgs": [
+    "-s"
+    // "--no-cov"
+    // --no-cov: Ensure the VSCode debugger keeps stopping on breakpoints
+    //           see https://github.com/Microsoft/vscode-python/issues/693 for details
+  ],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "files.associations": {
+    "*.tcc": "cpp",
+    "deque": "cpp",
+    "forward_list": "cpp",
+    "list": "cpp",
+    "string": "cpp",
+    "vector": "cpp",
+    "valarray": "cpp",
+    "__config": "cpp",
+    "__hash_table": "cpp",
+    "__tree": "cpp",
+    "chrono": "cpp",
+    "__node_handle": "cpp"
+  }
+}

@@ -1,0 +1,7 @@
+*.imgui.ini
+build
+dist
+gltf-sample-models
+output-images
+.local
+__pycache__
