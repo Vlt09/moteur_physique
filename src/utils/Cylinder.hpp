@@ -60,10 +60,10 @@ class Cylinder
     }
 
     // Init VBO
-    glGenBuffers(1, &this->_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, this->_vbo);
+    glGenBuffers(1, &this->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
     glBufferData(GL_ARRAY_BUFFER, this->m_VertexBuffer.size() * sizeof(Vertex),
-        this->getVertexBuffer(), GL_STATIC_DRAW);
+        this->getDataPointer(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 
@@ -87,7 +87,7 @@ public:
       GLuint modelViewProjMatrixLocation, GLuint modelViewMatrixLocation,
       GLuint normalMatrixLocation)
   {
-    const auto mvMatrix = viewMatrix * modelMatrix;
+    const auto mvMatrix = viewMatrix * transform_matrix;
     const auto mvpMatrix = projMatrix * mvMatrix;
     const auto normalMatrix = glm::transpose(glm::inverse(mvMatrix));
     glUniformMatrix4fv(
@@ -105,6 +105,16 @@ public:
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 
+  void addTranslation(glm::vec3 vector)
+  {
+    transform_matrix = glm::translate(transform_matrix, vector);
+  }
+
+  void addRotation(float angle, const glm::vec3 &axis)
+  {
+    transform_matrix = glm::rotate(transform_matrix, angle, axis);
+  }
+
   void initObj(GLuint vPos, GLuint vNorm, GLuint vTex)
   {
     initVboPointer();
@@ -118,11 +128,11 @@ public:
     glEnableVertexAttribArray(vNorm);
     glEnableVertexAttribArray(vTex);
     glVertexAttribPointer(vPos, 3, GL_FLOAT, GL_FALSE, getVertexSize(),
-        (GLvoid *)offsetof(Vertex, position));
+        (GLvoid *)offsetof(Vertex, m_Position));
     glVertexAttribPointer(vNorm, 3, GL_FLOAT, GL_FALSE, getVertexSize(),
-        (GLvoid *)offsetof(Vertex, normal));
+        (GLvoid *)offsetof(Vertex, m_Normal));
     glVertexAttribPointer(vTex, 2, GL_FLOAT, GL_FALSE, getVertexSize(),
-        (GLvoid *)offsetof(Vertex, texCoords));
+        (GLvoid *)offsetof(Vertex, m_TexCoords));
   }
 
   void initVboPointer()
@@ -135,7 +145,8 @@ public:
 
 private:
   GLsizei m_nVertexCount;
-  std::vector<Vertex> m_Vertices;
+  std::vector<Vertex> m_VertexBuffer;
   GLuint vbo;
   GLuint vao;
+  glm::mat4 transform_matrix = glm::mat4(1.0f);
 };

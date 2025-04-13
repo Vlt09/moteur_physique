@@ -30,24 +30,60 @@ GLuint modelMatrixLocation, modelViewProjMatrixLocation,
     uEmissiveTexture, uApplyOcclusion, uOcclusionFactor, uOcclusionTexture,
     uNormalTexture;
 
-void initFlag(float k, float z, GFLvector &g,
-    std::vector<std::shared_ptr<PMat>> &pmats, std::vector<Link> &links)
+static GFLvector g{0.0f, 0.0f};
+static glm::vec2 g_f{0.0f, 0.0f};
+
+void anim(std::vector<std::shared_ptr<PMat>> &pmats, std::vector<Link> &links,
+    std::vector<Sphere> &spheres, float h)
+{
+  for (int i = 0; i < links.size(); i++) {
+    links[i].update();
+  }
+
+  for (int i = 0; i < pmats.size(); i++) {
+    pmats[i]->update(h);
+
+    auto pos = pmats[i]->position();
+    spheres[i].addTranslation(glm::vec3(pos.x, pos.y, pos.z));
+  }
+}
+
+void moveParticle(std::vector<std::shared_ptr<PMat>> &pmats)
+{
+  GFLvector t = (GFLvector){-9.5f, 0.0f};
+  pmats[0]->addForce(t);
+}
+
+void initFlag(float k, float z, std::vector<std::shared_ptr<PMat>> &pmats,
+    std::vector<Link> &links, std::vector<Sphere> &spheres)
 {
   for (int i = 0; i < 10; i++) {
     for (int j = 0; j < 10; j++) {
       if (j == 0) {
-        auto pmat = std::make_shared<PMat>(
-            PMat((GFLpoint){-5., 5. - (i * 0.5)}, FLAG3D));
+        GFLpoint pos{0.005, 0.005 - (i * 0.05), 0.0};
+
+        auto pmat = std::make_shared<PMat>(PMat(pos, FLAG3D));
         pmats.emplace_back(pmat);
         links.emplace_back(Link::Extern_Force(*pmat, &g, FLAG3D));
+
+        // Particle
+        Sphere sphere(0.005f, 16, 16);
+        sphere.addTranslation(glm::vec3(pos.x, pos.y, pos.z));
+        spheres.emplace_back(sphere);
+
       } else {
-        auto pmat = std::make_shared<PMat>(
-            PMat(1., (GFLpoint){-4.5 + (j * 0.5), 5. - (i * 0.5)},
-                (GFLvector){0.f, 0.f}, PMat::Model::LEAP_FROG, FLAG3D));
+        GFLpoint pos{0.005 + (j * 0.05), 0.005 - (i * 0.05), 0.0};
+
+        auto pmat = std::make_shared<PMat>(PMat(
+            1., pos, (GFLvector){0.f, 0.f}, PMat::Model::LEAP_FROG, FLAG3D));
         pmats.emplace_back(pmat);
         links.emplace_back(Link::Hook_Spring(
             *pmats[(i * 10) + (j - 1)], *pmats[(i * 10) + j], k, z));
         links.emplace_back(Link::Extern_Force(*pmat, &g, FLAG3D));
+
+        Sphere sphere(0.005f, 16, 16);
+        sphere.addTranslation(glm::vec3(pos.x, pos.y, pos.z));
+        spheres.emplace_back(sphere);
       }
     }
   }
@@ -146,16 +182,23 @@ int ViewerApplication::run()
       "../../assets/skybox/bottom.jpg", "../../assets/skybox/front.jpg",
       "../../assets/skybox/back.jpg"};
 
-  float k, z;
-  GFLvector g;
+  float h, Fe, Fa, tempo;
+  Fe = 1000;
+  h = 1. / (float)Fe;
+
+  float k = 0.000001 * SQR(Fe); // on suppose que m = 1
+  float z = 0.00005 * (float)Fe;
+
   QuadCustom quad(1, 1);
   CubeCustom cube(1, 1, 1);
+  Sphere sphere(0.005f, 16, 16);
   std::vector<std::shared_ptr<PMat>> pmats;
+  std::vector<Sphere> spheres;
   std::vector<Link> links;
 
   Skybox skybox(faces, cube, m_ShadersRootPath);
 
-  initFlag(k, z, g, pmats, links);
+  initFlag(k, z, pmats, links, spheres);
   quad.initObj(0, 1, 2);
   // cube.initObj(0, 1, 2);
 
@@ -169,17 +212,11 @@ int ViewerApplication::run()
 
     getUniform(glslProgram);
 
-    quad.draw(modelMatrix, viewMatrix, projMatrix, modelMatrixLocation,
-        modelViewProjMatrixLocation, modelViewMatrixLocation,
-        normalMatrixLocation);
-
-    // cube.draw(modelMatrix, viewMatrix, projMatrix, modelMatrixLocation,
-    //     modelViewProjMatrixLocation, modelViewMatrixLocation,
-    //     normalMatrixLocation);
-
-    skybox.draw(modelMatrix, viewMatrix, projMatrix, modelMatrixLocation,
-        modelViewProjMatrixLocation, modelViewMatrixLocation,
-        normalMatrixLocation);
+    for (auto &s : spheres) {
+      s.draw(modelMatrix, viewMatrix, projMatrix, modelMatrixLocation,
+          modelViewProjMatrixLocation, modelViewMatrixLocation,
+          normalMatrixLocation);
+    }
   };
 
   // Uniform variable for light
@@ -195,12 +232,14 @@ int ViewerApplication::run()
 
   // Loop until the user closes the window
   for (auto iterationCount = 0u; !m_GLFWHandle.shouldClose();
-       ++iterationCount) {
+      ++iterationCount) {
     const auto seconds = glfwGetTime();
 
     const auto camera = cameraController->getCamera();
 
     drawScene(camera);
+    anim(pmats, links, spheres, h);
+    std::cout << "sphere 0 position = " << pmats[0]->position().x << std::endl;
 
     // GUI code:
     imguiNewFrame();
@@ -221,6 +260,22 @@ int ViewerApplication::run()
             camera.front().z);
         ImGui::Text("left: %.3f %.3f %.3f", camera.left().x, camera.left().y,
             camera.left().z);
+
+        ImGui::SliderFloat("Adjust Fa value", &Fa, 0.0f, 1.0f);
+        ImGui::SliderFloat("Adjust tempo value", &tempo, 0.0f, 300.0f);
+        if (ImGui::SliderFloat(
+                "Adjust gravity x value", &(g_f.x), 0.0f, 9.0f)) {
+          g.x = (float)g_f.x;
+        }
+
+        if (ImGui::SliderFloat(
+                "Adjust gravity y value", &(g_f.y), 0.0f, 9.0f)) {
+          g.y = (float)g_f.y;
+        }
+
+        if (ImGui::Button("Move Particle")) {
+          moveParticle(pmats);
+        }
 
         ImGui::End();
       }

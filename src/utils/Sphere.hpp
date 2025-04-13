@@ -3,11 +3,18 @@
 #include "Vertex.hpp"
 #include "shaders.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/io.hpp>
+
 #include <vector>
 
 class Sphere
 {
 public:
+  glm::mat4 transform_matrix = glm::mat4(1.0f);
+
   // Constructeur: alloue le tableau de données et construit les attributs des
   // vertex
   Sphere(GLfloat radius, GLsizei discLat, GLsizei discLong) : m_nVertexCount(0)
@@ -23,18 +30,28 @@ public:
 
   const unsigned long getVertexSize() const { return Vertex::sizeOfVertex(); }
 
-  void initVaoPointer(GLuint vPos, GLuint vNorm, GLuint vTex) const
+  void initVboPointer()
+  {
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, getVertexCount() * getVertexSize(),
+        getDataPointer(), GL_STATIC_DRAW);
+  }
+
+  void initVaoPointer(GLuint vPos, GLuint vNorm, GLuint vTex)
   {
     std::cout << "sphere vao init" << std::endl;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
     glEnableVertexAttribArray(vPos);
     glEnableVertexAttribArray(vNorm);
     glEnableVertexAttribArray(vTex);
     glVertexAttribPointer(vPos, 3, GL_FLOAT, GL_FALSE, getVertexSize(),
-        (GLvoid *)offsetof(Vertex, position));
+        (GLvoid *)offsetof(Vertex, m_Position));
     glVertexAttribPointer(vNorm, 3, GL_FLOAT, GL_FALSE, getVertexSize(),
-        (GLvoid *)offsetof(Vertex, normal));
+        (GLvoid *)offsetof(Vertex, m_Normal));
     glVertexAttribPointer(vTex, 2, GL_FLOAT, GL_FALSE, getVertexSize(),
-        (GLvoid *)offsetof(Vertex, texCoords));
+        (GLvoid *)offsetof(Vertex, m_TexCoords));
   }
 
   void draw(const glm::mat4 &modelMatrix, const glm::mat4 &viewMatrix,
@@ -42,7 +59,7 @@ public:
       GLuint modelViewProjMatrixLocation, GLuint modelViewMatrixLocation,
       GLuint normalMatrixLocation)
   {
-    const auto mvMatrix = viewMatrix * modelMatrix;
+    const auto mvMatrix = viewMatrix * transform_matrix;
     const auto mvpMatrix = projMatrix * mvMatrix;
     const auto normalMatrix = glm::transpose(glm::inverse(mvMatrix));
     glUniformMatrix4fv(
@@ -58,6 +75,17 @@ public:
     glDrawArrays(GL_TRIANGLES, 0, getVertexCount());
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+  }
+
+  void addTranslation(glm::vec3 vector)
+  {
+    transform_matrix = glm::translate(transform_matrix, vector);
+  }
+
+  glm::vec3 getPosition()
+  {
+    return glm::vec3(
+        transform_matrix[0][0], transform_matrix[1][1], transform_matrix[2][2]);
   }
 
 private:
@@ -82,7 +110,7 @@ private:
     GLfloat dPhi = 2 * glm::pi<float>() * rcpLat,
             dTheta = glm::pi<float>() * rcpLong;
 
-    std::vector<SphereVertex> data;
+    std::vector<Vertex> data;
 
     // Construit l'ensemble des vertex
     for (GLsizei j = 0; j <= discLong; ++j) {
@@ -90,16 +118,16 @@ private:
       GLfloat sinTheta = sin(-glm::pi<float>() / 2 + j * dTheta);
 
       for (GLsizei i = 0; i <= discLat; ++i) {
-        SphereVertex vertex;
+        Vertex vertex;
 
-        vertex.texCoords.x = i * rcpLat;
-        vertex.texCoords.y = 1.f - j * rcpLong;
+        vertex.m_TexCoords.x = i * rcpLat;
+        vertex.m_TexCoords.y = 1.f - j * rcpLong;
 
-        vertex.normal.x = sin(i * dPhi) * cosTheta;
-        vertex.normal.y = sinTheta;
-        vertex.normal.z = cos(i * dPhi) * cosTheta;
+        vertex.m_Normal.x = sin(i * dPhi) * cosTheta;
+        vertex.m_Normal.y = sinTheta;
+        vertex.m_Normal.z = cos(i * dPhi) * cosTheta;
 
-        vertex.position = radius * vertex.normal;
+        vertex.m_Position = radius * vertex.m_Normal;
 
         data.push_back(vertex);
       }
@@ -122,10 +150,12 @@ private:
         m_Vertices.push_back(data[offset + i + discLat + 1]);
       }
     }
+
+    initVboPointer();
+    initVaoPointer(0, 1, 2);
   }
 
   std::vector<Vertex> m_Vertices;
   GLsizei m_nVertexCount; // Nombre de sommets
-  GLuint vbo;
-  GLuint vao;
+  GLuint vbo, vao;
 };

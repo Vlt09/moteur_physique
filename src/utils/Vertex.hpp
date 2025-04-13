@@ -10,6 +10,6 @@ struct Vertex
 
   static unsigned long sizeOfVertex()
   {
-    return sizeof(position) + sizeof(normal) + sizeof(texCoords);
+    return sizeof(m_Position) + sizeof(m_Normal) + sizeof(m_TexCoords);
   }
 };
